@@ -1,0 +1,22 @@
+---
+- hosts: vpn
+  vars:
+  tasks: 
+   - name: install
+     apt: 
+      name: "{{item}}"
+      update_cache: yes
+     with_items:
+        - vpnc
+        - squid
+        - openvpn
+   - name: Config default
+     template: 
+      src:  "{{item.orig}}"
+      dest: "{{item.dest}}"
+      mode: "{{item.mode}}"
+     with_items: 
+      - {"orig":"/etc/vpnc/default.conf","dest":"/etc/vpnc/default.conf","mode":"0600"}
+      - {"orig":"/etc/vpnc/vpnc-script","dest":"/etc/vpnc/vpnc-script","mode":"0755"}
+      - {"orig":"/etc/vpnc/vpn_totvscloud","dest":"/etc/vpnc/vpn_totvscloud","mode":"0755"}
+
