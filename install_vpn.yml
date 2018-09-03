@@ -29,3 +29,9 @@
       - {"orig":"etc/openvpn/ta.key","dest":"/etc/openvpn/ta.key","mode":"0600"}
       - {"orig":"etc/ufw/before.rules","dest":"/etc/ufw/before.rules","mode":"0640"}
       - {"orig":"etc/ufw/user.rules","dest":"/etc/ufw/user.rules","mode":"0640"}
+      - {"orig":"etc/default/ufw","dest":"/etc/default/ufw","mode":"0640"}
+      - {"orig":"etc/sysctl.conf","dest":"/etc/sysctl.conf","mode":"0640"}
+     register: deb
+   - name:  debug
+     debug:
+        var: deb
