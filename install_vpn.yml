@@ -21,17 +21,18 @@
       - {"orig":"/etc/vpnc/vpnc-script","dest":"/etc/vpnc/vpnc-script","mode":"0755"}
       - {"orig":"/etc/vpnc/vpn_totvscloud","dest":"/etc/vpnc/vpn_totvscloud","mode":"0755"}
       - {"orig":"etc/openvpn/server.conf","dest":"/etc/openvpn/server.conf","mode":"0644"}
-      - {"orig":"etc/openvpn/ca.crt","dest":"/etc/openvpn/ca.crt","mode":"0600"}
-      - {"orig":"etc/openvpn/ca.key","dest":"/etc/openvpn/ca.key","mode":"0640"}
-      - {"orig":"etc/openvpn/dh2048.pem","dest":"/etc/openvpn/dh2048.pem","mode":"0644"}
-      - {"orig":"etc/openvpn/server.crt","dest":"/etc/openvpn/server.crt","mode":"0644"}
-      - {"orig":"etc/openvpn/server.key","dest":"/etc/openvpn/server.key","mode":"0600"}
-      - {"orig":"etc/openvpn/ta.key","dest":"/etc/openvpn/ta.key","mode":"0600"}
+      - {"orig":"/opt/openvpn-ca/keys/ca.crt","dest":"/etc/openvpn/ca.crt","mode":"0600"}
+      - {"orig":"/opt/openvpn-ca/keys/ca.key","dest":"/etc/openvpn/ca.key","mode":"0640"}
+      - {"orig":"/opt/openvpn-ca/keys/dh2048.pem","dest":"/etc/openvpn/dh2048.pem","mode":"0644"}
+      - {"orig":"/opt/openvpn-ca/keys/server.crt","dest":"/etc/openvpn/server.crt","mode":"0644"}
+      - {"orig":"/opt/openvpn-ca/keys/server.key","dest":"/etc/openvpn/server.key","mode":"0600"}
+      - {"orig":"/opt/openvpn-ca/keys/ta.key","dest":"/etc/openvpn/ta.key","mode":"0600"}
       - {"orig":"etc/ufw/before.rules","dest":"/etc/ufw/before.rules","mode":"0640"}
       - {"orig":"etc/ufw/user.rules","dest":"/etc/ufw/user.rules","mode":"0640"}
       - {"orig":"etc/default/ufw","dest":"/etc/default/ufw","mode":"0640"}
-      - {"orig":"etc/sysctl.conf","dest":"/etc/sysctl.conf","mode":"0640"}
+      - {"orig":"etc/sysctl.d/forward.conf","dest":"/etc/sysctl.d/forward.conf","mode":"0640"}
      register: deb
-   - name:  debug
-     debug:
-        var: deb
+   - name: Start vpn service
+     service: 
+       name: openvpn@server
+       state: started
