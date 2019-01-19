@@ -5,9 +5,9 @@ Please , read this page
 https://www.digitalocean.com/community/tutorials/como-configurar-um-servidor-openvpn-no-ubuntu-16-04-pt
 
 
-##Solution
-#Why
-#Install
+###Solution
+###Why
+###Install
 ami-0b04450959586da29 on   Sao Paulo DC
 Install python-pip
 yum -y install python-pip
