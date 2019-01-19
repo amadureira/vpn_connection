@@ -5,7 +5,7 @@ Please , read this page
 https://www.digitalocean.com/community/tutorials/como-configurar-um-servidor-openvpn-no-ubuntu-16-04-pt
 
 
-###Solution
+###Solution###
 ###Why
 ###Install
 ami-0b04450959586da29 on   Sao Paulo DC
