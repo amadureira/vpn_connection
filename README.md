@@ -5,16 +5,24 @@ Please , read this page
 https://www.digitalocean.com/community/tutorials/como-configurar-um-servidor-openvpn-no-ubuntu-16-04-pt
 
 
-###Solution###
-###Why
-###Install
-ami-0b04450959586da29 on   Sao Paulo DC
-Install python-pip
+## Solution
+This Tutorial explain how install hello-node and hello-python app. This Solution 
+
+## Why Container 
+
+## Install
+
+This app whats test on  Amazon envirionment. I've used Amazon  ami-0b04450959586da29 IAM     Sao Paulo DataCenter.
+
+
+# Install python-pip
 yum -y install python-pip
 pip install docker-py
 pip install ansible>=2.7
+
 *  Clone repository
 *  Apply patch
+
 On  hello-devops directory run:
 ansible-playbook deploy/tests/test.yml
 
