@@ -9,7 +9,7 @@ https://www.digitalocean.com/community/tutorials/como-configurar-um-servidor-ope
 
 I tested this app on Amazon environment. I've used ami-0b04450959586da29 ami. It is on Sao Paulo Data Center.
 
-Create a ec2 instance. After install the dependences bellow:
+Create a ec2 instance. After install run commmands bellow:
 ```
 sudo yum -y install python-pip git
 sudo pip install docker-py
@@ -19,12 +19,6 @@ cd hello-devops/
 git apply ~/result.patch
 ansible-playbook deploy/tests/test.yml
 ```
-
-*  Clone repository
-*  Apply patch
-
-On hello-devops directory run:
-ansible-playbook deploy/tests/test.yml
 
 It will: 
 * Install docker and start service
