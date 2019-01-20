@@ -11,9 +11,9 @@ I tested this app on Amazon environment. I've used ami-0b04450959586da29 ami. It
 
 Create a ec2 instance. After install the dependences bellow:
 ```
-yum -y install python-pip git
-pip install docker-py
-pip install ansible>=2.7
+sudo yum -y install python-pip git
+sudo pip install docker-py
+sudo pip install ansible>=2.7
 git clone https://github.com/quintoandar/hello-devops.git
 cd hello-devops/
 ansible-playbook deploy/tests/test.yml
