@@ -14,6 +14,9 @@ Create a ec2 instance. After install the dependences bellow:
 yum -y install python-pip git
 pip install docker-py
 pip install ansible>=2.7
+git clone https://github.com/quintoandar/hello-devops.git
+cd hello-devops/
+ansible-playbook deploy/tests/test.yml
 ```
 
 *  Clone repository
