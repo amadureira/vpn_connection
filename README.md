@@ -7,7 +7,7 @@ https://www.digitalocean.com/community/tutorials/como-configurar-um-servidor-ope
 
 # Install
 
-I tested this app on Amazon environment. I've used ami-0b04450959586da29 ami. It is on Sao Paulo Data Center.
+I've tested this app on Amazon environment. I've used ami-0b04450959586da29 ami. It is on Sao Paulo Data Center.
 
 Create a ec2 instance. After install run commmands bellow:
 ```
@@ -20,21 +20,23 @@ git apply ~/result.patch
 ansible-playbook deploy/tests/test.yml
 ```
 
-It will: 
-* Install docker and start service
-* Create a network and build images
-* Deploy containers on machine ( hello-python, hello-node, mysql and rabbitmq )
+It will install envirionment
 
-You could Change some parameters to customazie envirionment. For example  to change queue name.
-
-Those are the  parameters:
-* db_name
-* db_user
-* db_pass
-* rabbitmq_queue
-* rabbitmq_port 
-* rabbitmq_host
+You can change some parameters to customazie envirionment. For example  to change queue name.
 
 For example, To change queue name run:
 ansible-playbook deploy/tests/test.yml -e "rabbitmq_queue=test"
 Note: You could not change rabbitmq port on build-in container. The rabbitmq default container does not accept it.
+
+
+Those are the parameters:
+* db_name - Change db name
+* db_user - Change db username
+* db_pass - Change db password
+* rabbitmq_queue  - Change rabbitmq queue name
+* rabbitmq_port   - Change rabbitmq port. Only on external rabbitmq  
+* rabbitmq_host   - Change rabbitmq host
+
+You can remove all container with hello_state parammeter.
+ansible-playbook deploy/tests/test.yml -e "hello_state=absent"
+
