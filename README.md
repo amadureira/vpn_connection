@@ -9,7 +9,7 @@ https://www.digitalocean.com/community/tutorials/como-configurar-um-servidor-ope
 
 I've tested this app on Amazon environment. I've used ami-0b04450959586da29 ami. It is on Sao Paulo Data Center.
 
-Create a ec2 instance. After install run commmands bellow:
+Create a ec2 instance. After install run commands bellow:
 ```
 sudo yum -y install python-pip git
 sudo pip install docker-py
@@ -20,11 +20,10 @@ git apply ~/result.patch
 ansible-playbook deploy/tests/test.yml
 ```
 
-It will install envirionment
+It will install environment
 
-You can change some parameters to customazie envirionment. For example  to change queue name.
+You can change some parameters to customize environment. For example  to change queue name.
 
-For example, To change queue name run:
 ansible-playbook deploy/tests/test.yml -e "rabbitmq_queue=test"
 Note: You could not change rabbitmq port on build-in container. The rabbitmq default container does not accept it.
 
@@ -39,4 +38,3 @@ Those are the parameters:
 
 You can remove all container with hello_state parammeter.
 ansible-playbook deploy/tests/test.yml -e "hello_state=absent"
-
