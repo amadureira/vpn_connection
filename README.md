@@ -13,7 +13,7 @@ Create a ec2 instance. After install run commmands bellow:
 ```
 sudo yum -y install python-pip git
 sudo pip install docker-py
-sudo pip install ansible>=2.7
+sudo pip install 'ansible>=2.7'
 git clone https://github.com/quintoandar/hello-devops.git
 cd hello-devops/
 git apply ~/result.patch
