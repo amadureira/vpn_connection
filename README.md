@@ -12,12 +12,15 @@ This Tutorial explain how install hello-node and hello-python app. This Solution
 
 ## Install
 
-This app whats test on  Amazon envirionment. I've used Amazon  ami-0b04450959586da29 IAM     Sao Paulo DataCenter.
+This app whats was tested on Amazon environment. I've used  ami-0b04450959586da29 ami. It is a Sao Paulo Data Center ami.
 
 
-# Install python-pip
+Install python-pip
+
 yum -y install python-pip
+
 pip install docker-py
+
 pip install ansible>=2.7
 
 *  Clone repository
@@ -29,9 +32,9 @@ ansible-playbook deploy/tests/test.yml
 It will: 
 * Install docker and start service
 * Create a network and build images
-* Deploy containers on machine ( hello-python, hello-node, mysql and rabbitmq ) 
+* Deploy containers on machine ( hello-python, hello-node, mysql and rabbitmq )
 
-You could Change some parameters to customazie envirionment. For example  to change queue name. 
+You could Change some parameters to customazie envirionment. For example  to change queue name.
 
 Those are the  parameters:
 * db_name
