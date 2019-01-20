@@ -5,22 +5,21 @@ Please , read this page
 https://www.digitalocean.com/community/tutorials/como-configurar-um-servidor-openvpn-no-ubuntu-16-04-pt
 
 
-### Install
+# Install
 
-I tested this app on Amazon environment. I've used ami-0b04450959586da29 ami. It is a Sao Paulo Data Center ami.
+I tested this app on Amazon environment. I've used ami-0b04450959586da29 ami. It is on Sao Paulo Data Center.
 
-Install python-pip
-
-yum -y install python-pip
-
+Create a ec2 instance. After install the dependences bellow:
+```
+yum -y install python-pip git
 pip install docker-py
-
 pip install ansible>=2.7
+```
 
 *  Clone repository
 *  Apply patch
 
-On  hello-devops directory run:
+On hello-devops directory run:
 ansible-playbook deploy/tests/test.yml
 
 It will: 
