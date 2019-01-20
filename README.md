@@ -16,6 +16,7 @@ sudo pip install docker-py
 sudo pip install ansible>=2.7
 git clone https://github.com/quintoandar/hello-devops.git
 cd hello-devops/
+git apply ~/result.patch
 ansible-playbook deploy/tests/test.yml
 ```
 
