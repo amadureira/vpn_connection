@@ -1,0 +1,817 @@
+From a772e0093d3d95de925a52e446ccb61a92cf32b3 Mon Sep 17 00:00:00 2001
+From: Anderson Madureira <anderson.madureira@viavarejo.com.br>
+Date: Sun, 20 Jan 2019 16:56:33 -0200
+Subject: [PATCH]  Deploy app
+
+---
+ README.md                         |  40 +++++++
+ deploy/README.md                  |  38 +++++++
+ deploy/defaults/main.yml          |   7 ++
+ deploy/handlers/main.yml          |   2 +
+ deploy/meta/main.yml              |  60 +++++++++++
+ deploy/tasks/container.yml        |  60 +++++++++++
+ deploy/tasks/dockerfile.yml       |   9 ++
+ deploy/tasks/install.yaml         |   9 ++
+ deploy/tasks/main.yml             |   6 ++
+ deploy/tasks/network_build.yml    |  10 ++
+ deploy/templates/dockerfilenode   |   8 ++
+ deploy/templates/dockerfilepython |   9 ++
+ deploy/tests/Dockerfile           |   7 ++
+ deploy/tests/Dockerfilenode       |   4 +
+ deploy/tests/Dockerfilepython     |   0
+ deploy/tests/inventory            |   2 +
+ deploy/tests/test.retry           |   1 +
+ deploy/tests/test.yml             |   7 ++
+ deploy/vars/main.yml              |   2 +
+ hello-node/Dockerfile             |   8 ++
+ hello-node/app.js                 |  51 ++++-----
+ hello-node/create.js              |  24 +++++
+ hello-node/package-lock.json      | 169 ++++++++++++++++++++++++++++++
+ hello-python/Dockerfile           |   9 ++
+ hello-python/app.py               |  43 +++++---
+ 25 files changed, 547 insertions(+), 38 deletions(-)
+ create mode 100644 deploy/README.md
+ create mode 100644 deploy/defaults/main.yml
+ create mode 100644 deploy/handlers/main.yml
+ create mode 100644 deploy/meta/main.yml
+ create mode 100644 deploy/tasks/container.yml
+ create mode 100644 deploy/tasks/dockerfile.yml
+ create mode 100644 deploy/tasks/install.yaml
+ create mode 100644 deploy/tasks/main.yml
+ create mode 100644 deploy/tasks/network_build.yml
+ create mode 100644 deploy/templates/dockerfilenode
+ create mode 100644 deploy/templates/dockerfilepython
+ create mode 100644 deploy/tests/Dockerfile
+ create mode 100644 deploy/tests/Dockerfilenode
+ create mode 100644 deploy/tests/Dockerfilepython
+ create mode 100644 deploy/tests/inventory
+ create mode 100644 deploy/tests/test.retry
+ create mode 100644 deploy/tests/test.yml
+ create mode 100644 deploy/vars/main.yml
+ create mode 100644 hello-node/Dockerfile
+ create mode 100644 hello-node/create.js
+ create mode 100644 hello-node/package-lock.json
+ create mode 100644 hello-python/Dockerfile
+
+diff --git a/README.md b/README.md
+index 2f966d3..4df4464 100644
+--- a/README.md
++++ b/README.md
+@@ -69,3 +69,43 @@ Please do **not** fork this repository and do **not** publish your solution onli
+ ## Contact
+ 
+ Feel free to reach out if you have any questions! Also, we expect this problem to take some hours at most, but please do get in touch if you need more time to provide a good solution! It is far better than delivering something that does not work :)
++
++
++
++# Install
++
++I've tested this app on Amazon environment. I've used ami-0b04450959586da29 ami. It is on Sao Paulo Data Center.
++
++Create a ec2 instance with internet access. After install run commands bellow:
++```
++sudo yum -y install python-pip git
++sudo pip install docker-py
++sudo pip install 'ansible>=2.7'
++git clone https://github.com/quintoandar/hello-devops.git
++cd hello-devops/
++git apply ~/result.patch
++ansible-playbook deploy/tests/test.yml
++```
++
++It will install environment
++
++You can change some parameters to customize environment. For example  to change queue name.
++
++ansible-playbook deploy/tests/test.yml -e "rabbitmq_queue=test"
++Note: You could not change rabbitmq port on build-in container. The rabbitmq default container does not accept it.
++
++
++Those are the parameters:
++* db_name - Change db name
++* db_user - Change db username
++* db_pass - Change db password
++* rabbitmq_queue  - Change rabbitmq queue name
++* rabbitmq_port   - Change rabbitmq port. Only on external rabbitmq  
++* rabbitmq_host   - Change rabbitmq host
++
++To collect application log, you should run docker commands:
++sudo docker logs http ;  # To collect hello-python application logs
++sudo docker logs nodeapp ; # To  collect hello-noe application logs
++You can remove all container with hello_state parammeter.
++ansible-playbook deploy/tests/test.yml -e "hello_state=absent"
++
+diff --git a/deploy/README.md b/deploy/README.md
+new file mode 100644
+index 0000000..225dd44
+--- /dev/null
++++ b/deploy/README.md
+@@ -0,0 +1,38 @@
++Role Name
++=========
++
++A brief description of the role goes here.
++
++Requirements
++------------
++
++Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
++
++Role Variables
++--------------
++
++A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
++
++Dependencies
++------------
++
++A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
++
++Example Playbook
++----------------
++
++Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
++
++    - hosts: servers
++      roles:
++         - { role: username.rolename, x: 42 }
++
++License
++-------
++
++BSD
++
++Author Information
++------------------
++
++An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+diff --git a/deploy/defaults/main.yml b/deploy/defaults/main.yml
+new file mode 100644
+index 0000000..6cd1d0d
+--- /dev/null
++++ b/deploy/defaults/main.yml
+@@ -0,0 +1,7 @@
++---
++# defaults file for deploy
++db_name: "hello"
++db_user: "fila"
++db_pass: "fila"
++rabbitmq_queue: "hello"
++rabbitmq_port: "5672"
+diff --git a/deploy/handlers/main.yml b/deploy/handlers/main.yml
+new file mode 100644
+index 0000000..161ad67
+--- /dev/null
++++ b/deploy/handlers/main.yml
+@@ -0,0 +1,2 @@
++---
++# handlers file for deploy
+\ No newline at end of file
+diff --git a/deploy/meta/main.yml b/deploy/meta/main.yml
+new file mode 100644
+index 0000000..5d50bf4
+--- /dev/null
++++ b/deploy/meta/main.yml
+@@ -0,0 +1,60 @@
++galaxy_info:
++  author: your name
++  description: your description
++  company: your company (optional)
++
++  # If the issue tracker for your role is not on github, uncomment the
++  # next line and provide a value
++  # issue_tracker_url: http://example.com/issue/tracker
++
++  # Some suggested licenses:
++  # - BSD (default)
++  # - MIT
++  # - GPLv2
++  # - GPLv3
++  # - Apache
++  # - CC-BY
++  license: license (GPLv2, CC-BY, etc)
++
++  min_ansible_version: 2.4
++
++  # If this a Container Enabled role, provide the minimum Ansible Container version.
++  # min_ansible_container_version:
++
++  # Optionally specify the branch Galaxy will use when accessing the GitHub
++  # repo for this role. During role install, if no tags are available,
++  # Galaxy will use this branch. During import Galaxy will access files on
++  # this branch. If Travis integration is configured, only notifications for this
++  # branch will be accepted. Otherwise, in all cases, the repo's default branch
++  # (usually master) will be used.
++  #github_branch:
++
++  #
++  # Provide a list of supported platforms, and for each platform a list of versions.
++  # If you don't wish to enumerate all versions for a particular platform, use 'all'.
++  # To view available platforms and versions (or releases), visit:
++  # https://galaxy.ansible.com/api/v1/platforms/
++  #
++  # platforms:
++  # - name: Fedora
++  #   versions:
++  #   - all
++  #   - 25
++  # - name: SomePlatform
++  #   versions:
++  #   - all
++  #   - 1.0
++  #   - 7
++  #   - 99.99
++
++  galaxy_tags: []
++    # List tags for your role here, one per line. A tag is a keyword that describes
++    # and categorizes the role. Users find roles by searching for tags. Be sure to
++    # remove the '[]' above, if you add tags to this list.
++    #
++    # NOTE: A tag is limited to a single word comprised of alphanumeric characters.
++    #       Maximum 20 tags per role.
++
++dependencies: []
++  # List your role dependencies here, one per line. Be sure to remove the '[]' above,
++  # if you add dependencies to this list.
+\ No newline at end of file
+diff --git a/deploy/tasks/container.yml b/deploy/tasks/container.yml
+new file mode 100644
+index 0000000..21eec90
+--- /dev/null
++++ b/deploy/tasks/container.yml
+@@ -0,0 +1,60 @@
++- name: Deploy Rabbitmq 
++  docker_container: 
++    name: rabbitmq
++    state: "{{hello_state| default('started')}}"
++    image: rabbitmq:latest  
++    networks:
++     - name: hello_network
++       aliases:
++        - rabbitmq
++
++- name: Deploy  Mysql
++  docker_container: 
++    name: mysql
++    state: "{{hello_state| default('started')}}"
++    image: mysql:5.7
++    networks:
++     - name: hello_network
++       aliases:
++        - mysql
++    env:
++            MYSQL_ROOT_PASSWORD: "{{db_pass}}"
++            MYSQL_PASSWORD:      "{{db_pass}}"
++            MYSQL_DATABASE :     "{{db_name}}"
++            MYSQL_USER:          "{{db_user}}"
++
++- name: Deploy node  Container
++  docker_container:
++   name: nodeapp
++   state: "{{hello_state| default('started')}}"
++   image: node:deploy
++   restart_policy: on-failure
++   networks:
++     - name: hello_network
++       aliases:
++        - nodeapp
++   env: 
++     RABBITMQ_HOST:  "{{rabbitmq_host | default('rabbitmq')}}"
++     RABBITMQ_PORT:  "{{rabbitmq_port}}"
++     RABBITMQ_QUEUE: "{{rabbitmq_queue}}"
++     MYSQL_HOST:     "{{db_host | default('mysql')}}"
++     MYSQL_PASSWORD: "{{db_pass}}"
++     MYSQL_DB :      "{{db_name}}"
++     MYSQL_USER:     "{{db_user}}"
++
++- name: Deploy python  Container
++  docker_container:
++   name: http 
++   state: "{{hello_state| default('started')}}"
++   image: python:deploy
++   restart_policy: on-failure
++   networks:
++     - name: hello_network
++       aliases:
++        - http
++   ports:
++    - 8000:8000
++   env: 
++     RABBITMQ_HOST:  "{{rabbitmq_host | default('rabbitmq')}}"
++     RABBITMQ_PORT:  "{{rabbitmq_port}}"
++     RABBITMQ_QUEUE: "{{rabbitmq_queue}}"
+diff --git a/deploy/tasks/dockerfile.yml b/deploy/tasks/dockerfile.yml
+new file mode 100644
+index 0000000..d50efa5
+--- /dev/null
++++ b/deploy/tasks/dockerfile.yml
+@@ -0,0 +1,9 @@
++- name: Create DockerFile
++  template: 
++   src: "{{item.src}}"
++   dest: "{{item.dest}}"
++  with_items: 
++    - src: dockerfilenode
++      dest: ../../hello-node/Dockerfile
++    - src: dockerfilepython
++      dest: ../../hello-python/Dockerfile
+diff --git a/deploy/tasks/install.yaml b/deploy/tasks/install.yaml
+new file mode 100644
+index 0000000..da43172
+--- /dev/null
++++ b/deploy/tasks/install.yaml
+@@ -0,0 +1,9 @@
++- name: Install Docker 
++  yum: 
++   name: docker
++   state: present
++
++- name: Start Service
++  service: 
++   name: docker
++   state: started
+diff --git a/deploy/tasks/main.yml b/deploy/tasks/main.yml
+new file mode 100644
+index 0000000..a0dfae8
+--- /dev/null
++++ b/deploy/tasks/main.yml
+@@ -0,0 +1,6 @@
++---
++# tasks file for deploy
++- import_tasks: install.yaml
++- import_tasks: dockerfile.yml
++- import_tasks: network_build.yml
++- import_tasks: container.yml
+diff --git a/deploy/tasks/network_build.yml b/deploy/tasks/network_build.yml
+new file mode 100644
+index 0000000..5d1d538
+--- /dev/null
++++ b/deploy/tasks/network_build.yml
+@@ -0,0 +1,10 @@
++- name: Create Node container 
++  shell: docker build ../../hello-node/ --rm  -tnode:deploy
++
++- name: Create Python container 
++  shell: docker build ../../hello-python/ --rm  -tpython:deploy
++
++
++- name: Create Network
++  docker_network: 
++   name: hello_network
+diff --git a/deploy/templates/dockerfilenode b/deploy/templates/dockerfilenode
+new file mode 100644
+index 0000000..75c4c98
+--- /dev/null
++++ b/deploy/templates/dockerfilenode
+@@ -0,0 +1,8 @@
++FROM node:latest
++RUN mkdir /app/
++WORKDIR /app/
++ADD app.js /app/
++ADD create.js /app/
++ADD package.json /app/
++RUN npm install
++CMD node create.js && node app.js
+diff --git a/deploy/templates/dockerfilepython b/deploy/templates/dockerfilepython
+new file mode 100644
+index 0000000..545efaa
+--- /dev/null
++++ b/deploy/templates/dockerfilepython
+@@ -0,0 +1,9 @@
++FROM python:2.7
++RUN mkdir /app/
++WORKDIR /app/
++RUN pip install pika
++COPY app.py /app/
++COPY requirements.txt /app/
++RUN pip install  -r requirements.txt 
++EXPOSE 8000
++CMD python app.py
+diff --git a/deploy/tests/Dockerfile b/deploy/tests/Dockerfile
+new file mode 100644
+index 0000000..cb05696
+--- /dev/null
++++ b/deploy/tests/Dockerfile
+@@ -0,0 +1,7 @@
++FROM node:latest
++RUN mkdir /app/
++WORKDIR /app/
++ADD app.js /app/
++ADD package.json /app/
++RUN npm install
++CMD "node app.js"
+diff --git a/deploy/tests/Dockerfilenode b/deploy/tests/Dockerfilenode
+new file mode 100644
+index 0000000..c7e5501
+--- /dev/null
++++ b/deploy/tests/Dockerfilenode
+@@ -0,0 +1,4 @@
++FROM node:latest
++ADD hello-node/app.js /app/
++WORKDIR /app/
++RUN node app.js
+diff --git a/deploy/tests/Dockerfilepython b/deploy/tests/Dockerfilepython
+new file mode 100644
+index 0000000..e69de29
+diff --git a/deploy/tests/inventory b/deploy/tests/inventory
+new file mode 100644
+index 0000000..878877b
+--- /dev/null
++++ b/deploy/tests/inventory
+@@ -0,0 +1,2 @@
++localhost
++
+diff --git a/deploy/tests/test.retry b/deploy/tests/test.retry
+new file mode 100644
+index 0000000..7ced7df
+--- /dev/null
++++ b/deploy/tests/test.retry
+@@ -0,0 +1 @@
++ec2-177-71-204-37.sa-east-1.compute.amazonaws.com
+diff --git a/deploy/tests/test.yml b/deploy/tests/test.yml
+new file mode 100644
+index 0000000..0f5f3da
+--- /dev/null
++++ b/deploy/tests/test.yml
+@@ -0,0 +1,7 @@
++---
++- hosts: localhost
++  vars:
++   ansible_connection: local
++  become: yes
++  roles:
++    - deploy
+diff --git a/deploy/vars/main.yml b/deploy/vars/main.yml
+new file mode 100644
+index 0000000..dd06e3d
+--- /dev/null
++++ b/deploy/vars/main.yml
+@@ -0,0 +1,2 @@
++---
++# vars file for deploy
+\ No newline at end of file
+diff --git a/hello-node/Dockerfile b/hello-node/Dockerfile
+new file mode 100644
+index 0000000..75c4c98
+--- /dev/null
++++ b/hello-node/Dockerfile
+@@ -0,0 +1,8 @@
++FROM node:latest
++RUN mkdir /app/
++WORKDIR /app/
++ADD app.js /app/
++ADD create.js /app/
++ADD package.json /app/
++RUN npm install
++CMD node create.js && node app.js
+diff --git a/hello-node/app.js b/hello-node/app.js
+index 0f12b22..9315c1d 100644
+--- a/hello-node/app.js
++++ b/hello-node/app.js
+@@ -19,30 +19,31 @@ console.log(
+   RABBITMQ_PORT
+ );
+ 
+-var url = "amqp://" + RABBITMQ_HOST + RABBITMQ_PORT;
++var url = "amqp://" + RABBITMQ_HOST +":" + RABBITMQ_PORT;
+ amqp.connect(url, function(err, conn) {
+-  console.log("Connected to RabbitMQ at %s", url);
+-
+-  // this will fail if the queue is still not ready to accept consumers!
+-  conn.createChannel(
+-    function(err, ch) {
+-      if (err) throw err;
+-      ch.assertQueue(RABBITMQ_QUEUE, { durable: false });
+-      console.log("Consuming queue: %s", RABBITMQ_QUEUE);
+-
+-      ch.consume(RABBITMQ_QUEUE, function(msg) {
+-        console.log("Received message: %s", msg);
+-
+-        db.query(
+-          "INSERT INTO table SET ?",
+-          { message: msg.content.toString() },
+-          function(err, result) {
+-            if (err) throw err;
+-            console.log(result);
+-          }
+-        );
+-      });
+-    },
+-    { noAck: true }
+-  );
++   console.log("Connected to RabbitMQ at %s", url);
++   
++     // this will fail if the queue is still not ready to accept consumers!
++   conn.createChannel(
++      function(err, ch) {
++         if (err) throw err;
++         ch.assertQueue(RABBITMQ_QUEUE, { durable: false });
++         console.log("Consuming queue: %s", RABBITMQ_QUEUE);
++         
++         ch.consume(RABBITMQ_QUEUE, function(msg) {
++            console.log("Received message: %s", msg);
++            
++            db.query(
++               "INSERT INTO Messages SET ?",
++               { message: msg.content.toString() },
++               function(err, result) {
++                  if (err) throw err;
++                  console.log(result);
++                  ch.ack(msg);
++               }
++            );
++         });
++      },
++      { noAck: true }
++   );
+ });
+diff --git a/hello-node/create.js b/hello-node/create.js
+new file mode 100644
+index 0000000..b97480e
+--- /dev/null
++++ b/hello-node/create.js
+@@ -0,0 +1,24 @@
++#!/usr/bin/env node
++var mysql = require("mysql");
++
++dbname = process.env.MYSQL_DB|| 'hello'
++var db = mysql.createConnection({
++  host: process.env.MYSQL_HOST || "localhost",
++  user: process.env.MYSQL_USER || "root",
++  password: process.env.MYSQL_PASSWORD,
++  database: process.env.MYSQL_DB || "hello"
++});
++console.log("Connect on host : " + process.env.MYSQL_HOST+"  On DB : "+dbname);
++sql =  "CREATE TABLE  IF NOT EXISTS Messages ( ID int NOT NULL AUTO_INCREMENT,message VARCHAR(255),  PRIMARY KEY (ID) ); " ;
++console.log(sql);
++db.query(
++   sql,
++   function(err, result) {
++      if (err){ 
++      throw err;
++      }
++      console.log(result);
++   }
++);
++db.end();
++console.log("OK");
+diff --git a/hello-node/package-lock.json b/hello-node/package-lock.json
+new file mode 100644
+index 0000000..f08982a
+--- /dev/null
++++ b/hello-node/package-lock.json
+@@ -0,0 +1,169 @@
++{
++  "name": "hello-node",
++  "version": "0.0.1",
++  "lockfileVersion": 1,
++  "requires": true,
++  "dependencies": {
++    "amqplib": {
++      "version": "0.5.3",
++      "resolved": "https://registry.npmjs.org/amqplib/-/amqplib-0.5.3.tgz",
++      "integrity": "sha512-ZOdUhMxcF+u62rPI+hMtU1NBXSDFQ3eCJJrenamtdQ7YYwh7RZJHOIM1gonVbZ5PyVdYH4xqBPje9OYqk7fnqw==",
++      "requires": {
++        "bitsyntax": "~0.1.0",
++        "bluebird": "^3.5.2",
++        "buffer-more-ints": "~1.0.0",
++        "readable-stream": "1.x >=1.1.9",
++        "safe-buffer": "~5.1.2",
++        "url-parse": "~1.4.3"
++      }
++    },
++    "bignumber.js": {
++      "version": "4.1.0",
++      "resolved": "https://registry.npmjs.org/bignumber.js/-/bignumber.js-4.1.0.tgz",
++      "integrity": "sha512-eJzYkFYy9L4JzXsbymsFn3p54D+llV27oTQ+ziJG7WFRheJcNZilgVXMG0LoZtlQSKBsJdWtLFqOD0u+U0jZKA=="
++    },
++    "bitsyntax": {
++      "version": "0.1.0",
++      "resolved": "https://registry.npmjs.org/bitsyntax/-/bitsyntax-0.1.0.tgz",
++      "integrity": "sha512-ikAdCnrloKmFOugAfxWws89/fPc+nw0OOG1IzIE72uSOg/A3cYptKCjSUhDTuj7fhsJtzkzlv7l3b8PzRHLN0Q==",
++      "requires": {
++        "buffer-more-ints": "~1.0.0",
++        "debug": "~2.6.9",
++        "safe-buffer": "~5.1.2"
++      }
++    },
++    "bluebird": {
++      "version": "3.5.3",
++      "resolved": "https://registry.npmjs.org/bluebird/-/bluebird-3.5.3.tgz",
++      "integrity": "sha512-/qKPUQlaW1OyR51WeCPBvRnAlnZFUJkCSG5HzGnuIqhgyJtF+T94lFnn33eiazjRm2LAHVy2guNnaq48X9SJuw=="
++    },
++    "buffer-more-ints": {
++      "version": "1.0.0",
++      "resolved": "https://registry.npmjs.org/buffer-more-ints/-/buffer-more-ints-1.0.0.tgz",
++      "integrity": "sha512-EMetuGFz5SLsT0QTnXzINh4Ksr+oo4i+UGTXEshiGCQWnsgSs7ZhJ8fzlwQ+OzEMs0MpDAMr1hxnblp5a4vcHg=="
++    },
++    "core-util-is": {
++      "version": "1.0.2",
++      "resolved": "https://registry.npmjs.org/core-util-is/-/core-util-is-1.0.2.tgz",
++      "integrity": "sha1-tf1UIgqivFq1eqtxQMlAdUUDwac="
++    },
++    "debug": {
++      "version": "2.6.9",
++      "resolved": "https://registry.npmjs.org/debug/-/debug-2.6.9.tgz",
++      "integrity": "sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==",
++      "requires": {
++        "ms": "2.0.0"
++      }
++    },
++    "inherits": {
++      "version": "2.0.3",
++      "resolved": "https://registry.npmjs.org/inherits/-/inherits-2.0.3.tgz",
++      "integrity": "sha1-Yzwsg+PaQqUC9SRmAiSA9CCCYd4="
++    },
++    "isarray": {
++      "version": "0.0.1",
++      "resolved": "https://registry.npmjs.org/isarray/-/isarray-0.0.1.tgz",
++      "integrity": "sha1-ihis/Kmo9Bd+Cav8YDiTmwXR7t8="
++    },
++    "ms": {
++      "version": "2.0.0",
++      "resolved": "https://registry.npmjs.org/ms/-/ms-2.0.0.tgz",
++      "integrity": "sha1-VgiurfwAvmwpAd9fmGF4jeDVl8g="
++    },
++    "mysql": {
++      "version": "2.16.0",
++      "resolved": "https://registry.npmjs.org/mysql/-/mysql-2.16.0.tgz",
++      "integrity": "sha512-dPbN2LHonQp7D5ja5DJXNbCLe/HRdu+f3v61aguzNRQIrmZLOeRoymBYyeThrR6ug+FqzDL95Gc9maqZUJS+Gw==",
++      "requires": {
++        "bignumber.js": "4.1.0",
++        "readable-stream": "2.3.6",
++        "safe-buffer": "5.1.2",
++        "sqlstring": "2.3.1"
++      },
++      "dependencies": {
++        "isarray": {
++          "version": "1.0.0",
++          "resolved": "https://registry.npmjs.org/isarray/-/isarray-1.0.0.tgz",
++          "integrity": "sha1-u5NdSFgsuhaMBoNJV6VKPgcSTxE="
++        },
++        "readable-stream": {
++          "version": "2.3.6",
++          "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-2.3.6.tgz",
++          "integrity": "sha512-tQtKA9WIAhBF3+VLAseyMqZeBjW0AHJoxOtYqSUZNJxauErmLbVm2FW1y+J/YA9dUrAC39ITejlZWhVIwawkKw==",
++          "requires": {
++            "core-util-is": "~1.0.0",
++            "inherits": "~2.0.3",
++            "isarray": "~1.0.0",
++            "process-nextick-args": "~2.0.0",
++            "safe-buffer": "~5.1.1",
++            "string_decoder": "~1.1.1",
++            "util-deprecate": "~1.0.1"
++          }
++        },
++        "string_decoder": {
++          "version": "1.1.1",
++          "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.1.1.tgz",
++          "integrity": "sha512-n/ShnvDi6FHbbVfviro+WojiFzv+s8MPMHBczVePfUpDJLwoLT0ht1l4YwBCbi8pJAveEEdnkHyPyTP/mzRfwg==",
++          "requires": {
++            "safe-buffer": "~5.1.0"
++          }
++        }
++      }
++    },
++    "process-nextick-args": {
++      "version": "2.0.0",
++      "resolved": "https://registry.npmjs.org/process-nextick-args/-/process-nextick-args-2.0.0.tgz",
++      "integrity": "sha512-MtEC1TqN0EU5nephaJ4rAtThHtC86dNN9qCuEhtshvpVBkAW5ZO7BASN9REnF9eoXGcRub+pFuKEpOHE+HbEMw=="
++    },
++    "querystringify": {
++      "version": "2.1.0",
++      "resolved": "https://registry.npmjs.org/querystringify/-/querystringify-2.1.0.tgz",
++      "integrity": "sha512-sluvZZ1YiTLD5jsqZcDmFyV2EwToyXZBfpoVOmktMmW+VEnhgakFHnasVph65fOjGPTWN0Nw3+XQaSeMayr0kg=="
++    },
++    "readable-stream": {
++      "version": "1.1.14",
++      "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-1.1.14.tgz",
++      "integrity": "sha1-fPTFTvZI44EwhMY23SB54WbAgdk=",
++      "requires": {
++        "core-util-is": "~1.0.0",
++        "inherits": "~2.0.1",
++        "isarray": "0.0.1",
++        "string_decoder": "~0.10.x"
++      }
++    },
++    "requires-port": {
++      "version": "1.0.0",
++      "resolved": "https://registry.npmjs.org/requires-port/-/requires-port-1.0.0.tgz",
++      "integrity": "sha1-kl0mAdOaxIXgkc8NpcbmlNw9yv8="
++    },
++    "safe-buffer": {
++      "version": "5.1.2",
++      "resolved": "https://registry.npmjs.org/safe-buffer/-/safe-buffer-5.1.2.tgz",
++      "integrity": "sha512-Gd2UZBJDkXlY7GbJxfsE8/nvKkUEU1G38c1siN6QP6a9PT9MmHB8GnpscSmMJSoF8LOIrt8ud/wPtojys4G6+g=="
++    },
++    "sqlstring": {
++      "version": "2.3.1",
++      "resolved": "https://registry.npmjs.org/sqlstring/-/sqlstring-2.3.1.tgz",
++      "integrity": "sha1-R1OT/56RR5rqYtyvDKPRSYOn+0A="
++    },
++    "string_decoder": {
++      "version": "0.10.31",
++      "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-0.10.31.tgz",
++      "integrity": "sha1-YuIDvEF2bGwoyfyEMB2rHFMQ+pQ="
++    },
++    "url-parse": {
++      "version": "1.4.4",
++      "resolved": "https://registry.npmjs.org/url-parse/-/url-parse-1.4.4.tgz",
++      "integrity": "sha512-/92DTTorg4JjktLNLe6GPS2/RvAd/RGr6LuktmWSMLEOa6rjnlrFXNgSbSmkNvCoL2T028A0a1JaJLzRMlFoHg==",
++      "requires": {
++        "querystringify": "^2.0.0",
++        "requires-port": "^1.0.0"
++      }
++    },
++    "util-deprecate": {
++      "version": "1.0.2",
++      "resolved": "https://registry.npmjs.org/util-deprecate/-/util-deprecate-1.0.2.tgz",
++      "integrity": "sha1-RQ1Nyfpw3nMnYvvS1KKJgUGaDM8="
++    }
++  }
++}
+diff --git a/hello-python/Dockerfile b/hello-python/Dockerfile
+new file mode 100644
+index 0000000..545efaa
+--- /dev/null
++++ b/hello-python/Dockerfile
+@@ -0,0 +1,9 @@
++FROM python:2.7
++RUN mkdir /app/
++WORKDIR /app/
++RUN pip install pika
++COPY app.py /app/
++COPY requirements.txt /app/
++RUN pip install  -r requirements.txt 
++EXPOSE 8000
++CMD python app.py
+diff --git a/hello-python/app.py b/hello-python/app.py
+index 8ffa61b..88fa459 100644
+--- a/hello-python/app.py
++++ b/hello-python/app.py
+@@ -1,5 +1,5 @@
+ import os, pika
+-from flask import Flask, request, jsonify
++from flask import Flask, request, jsonify,redirect,url_for
+ 
+ app = Flask(__name__)
+ 
+@@ -19,26 +19,43 @@ html = """
+ 
+ @app.route('/', methods=['GET', 'POST'])
+ def index():
++    code=200
+     if request.method == 'POST':
+         app.logger.info(request.form.get("flavour"))
+-    return html
++        if enqueue(request.form.get("flavour")):
++           return redirect(url_for('index'))
++        else:
++           code = 506
++    return html,code
+ 
+ 
+ @app.route('/health', methods=['GET'])
+ def health():
+-    return jsonify({"status": "ok"})
+-
++    try:
++       params = pika.ConnectionParameters(host=host, port=port)
++       connection = pika.BlockingConnection(params)
++       channel = connection.channel()
++       channel.queue_declare(queue=queue)
++       return jsonify({"status": "ok"}),200
++    except  pika.exceptions.ConnectionClosed as e:
++      return jsonify({"status": "nok"}),404
++      app.logger.info("Fail to connect on rabbitmq %s:%s"  , host, port);
+ 
+ def enqueue(value):
+-    app.logger.info("Received message: %s", value)
+-    params = pika.ConnectionParameters(host=host, port=port)
+-    connection = pika.BlockingConnection(params)
+-    channel = connection.channel()
+-    channel.queue_declare(queue=queue)
+-    channel.basic_publish(exchange='', routing_key=queue, body=value)
+-    connection.close()
+-    app.logger.info("Enqueued message on host %s:%s queue %s: %s", host, port,
+-                    queue, value)
++    try:
++       app.logger.info("Received message: %s", value)
++       params = pika.ConnectionParameters(host=host, port=port)
++       connection = pika.BlockingConnection(params)
++       channel = connection.channel()
++       channel.queue_declare(queue=queue)
++       channel.basic_publish(exchange='', routing_key=queue, body=value)
++       connection.close()
++       app.logger.info("Enqueued message on host %s:%s queue %s: %s", host, port,
++                       queue, value)
++       return True;
++    except  pika.exceptions.ConnectionClosed as e:
++        app.logger.info("Fail to connect on rabbitmq %s:%s"  , host, port);
++        return False;
+ 
+ 
+ if __name__ == "__main__":
+-- 
+2.19.1
+
